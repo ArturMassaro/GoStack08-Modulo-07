@@ -1,0 +1,80 @@
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { MdAddShoppingCart } from 'react-icons/md';
+import api from '../../services/api';
+
+import * as CartActions from '../../store/modules/cart/actions';
+
+import { ProductList } from './styles';
+import { formatPrice } from '../../util/format';
+
+class Home extends Component {
+  state = {
+    products: [],
+  };
+
+  async componentDidMount() {
+    const response = await api.get('products');
+
+    const data = response.data.map(product => ({
+      ...product,
+      priceFormatted: formatPrice(product.price),
+    }));
+
+    this.setState({
+      products: data,
+    });
+  }
+
+  handleAddProduct = productId => {
+    const { addToCartRequest } = this.props;
+
+    addToCartRequest(productId);
+  };
+
+  render() {
+    const { products } = this.state;
+    const { amount } = this.props;
+
+    return (
+      <ProductList>
+        {products.map(product => (
+          <li key={String(product.id)}>
+            <img src={product.image} alt="Tenîs" />
+            <strong>{product.title}</strong>
+            <strong>{product.priceFormatted}</strong>
+
+            <button
+              type="button"
+              onClick={() => this.handleAddProduct(product.id)}
+            >
+              <div>
+                <MdAddShoppingCart size={16} color="#fff" />
+                {amount[product.id] || 0}
+              </div>
+
+              <span>ADICIONAR AO CARRINHO</span>
+            </button>
+          </li>
+        ))}
+      </ProductList>
+    );
+  }
+}
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(CartActions, dispatch);
+
+const mapStateToProps = state => ({
+  amount: state.cart.reduce((amount, product) => {
+    amount[product.id] = product.amount;
+
+    return amount;
+  }, {}),
+});
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Home);
